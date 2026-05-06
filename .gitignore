@@ -1,0 +1,23 @@
+# Windows Zone.Identifier alternate data stream files (WSL artifact)
+*:Zone.Identifier
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# ROS2 colcon build artifacts
+ros2/build/
+ros2/install/
+ros2/log/
+
+# ROS1 catkin build artifacts
+ros/build/
+ros/devel/
+ros/install/
+
+# AirLib build outputs and downloaded deps
+build_release/
+build_debug/
+AirLib/deps/
+AirLib/lib/
+external/

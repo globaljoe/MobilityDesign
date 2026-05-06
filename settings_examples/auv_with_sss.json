@@ -1,0 +1,40 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Auv",
+  "Vehicles": {
+    "AuvSimple": {
+      "VehicleType": "AuvSimple",
+      "Sensors": {
+        "sss": {
+          "SensorType": 8,
+          "Enabled": true,
+          "NumberOfLaserSamples": 1500,
+          "NumberOfSamples": 1000,
+          "MaxRange": 75.0,
+          "MinRange": 0.5,
+          "HorizontalFOV": 0.5,
+          "VerticalFOV": 60.0,
+          "MaxFrameRate": 10,
+          "OpenSonarViewer": true,
+          "EnableBeamPattern": true,
+          "EnableTransmissionLoss": true,
+          "TransmissionLossScale": 0.1,
+          "EnableRayleighNoise": true,
+          "RayleighNoiseScale": 0.05,
+          "EnableRangeNoise": true,
+          "RangeNoiseSigma": 0.005,
+          "DataFrame": "SensorLocalFrame",
+          "MaxBounceRay": 1,
+          "Port": {
+            "X": 0.4, "Y": -0.1, "Z": 0,
+            "Roll": 0, "Pitch": -15, "Yaw": -90
+          },
+          "Starboard": {
+            "X": 0.4, "Y": 0.1, "Z": 0,
+            "Roll": 0, "Pitch": -15, "Yaw": 90
+          }
+        }
+      }
+    }
+  }
+}
