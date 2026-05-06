@@ -12,6 +12,7 @@
   <em>▶ Demo Video (click to watch on YouTube)</em>
 </p>
 
+> **Notice:** This is a **partial release** of FURo-Sim made available to support an in-progress paper review. Some components — see the [TODO](#todo) section — will be released after the review is complete.
 
 FURo-Sim is an open-source, GPU-accelerated, physics-based sonar simulation framework built on [Unreal Engine 5.4](https://www.unrealengine.com/) for underwater robotic perception research. Originally developed upon the [AirSim](https://github.com/microsoft/AirSim) (Microsoft) and [Colosseum](https://github.com/CodexLabsLLC/Colosseum) (Codex Laboratories) frameworks, FURo-Sim extends their capabilities with support for autonomous underwater vehicles (AUVs), autonomous surface vehicles (ASVs), and physically realistic underwater acoustic sensing. It generates physically realistic synthetic sonar imagery together with pixel-accurate ground-truth annotations at negligible marginal cost, addressing the scarcity and high acquisition cost of real underwater sonar datasets.
 
