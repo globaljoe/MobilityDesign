@@ -1,12 +1,36 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from ament_index_python.packages import get_package_share_directory
+
+
+def _detect_default_host():
+    """Return the simulator host IP.
+
+    Under WSL2 the Unreal simulator runs on the Windows host, which is reachable
+    from the WSL2 guest at the DNS nameserver address recorded in /etc/resolv.conf
+    (the WSL2 NAT gateway). Outside WSL we fall back to localhost.
+    """
+    try:
+        with open("/proc/version", "r") as f:
+            if "microsoft" not in f.read().lower():
+                return "localhost"
+    except OSError:
+        return "localhost"
+    try:
+        with open("/etc/resolv.conf", "r") as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) >= 2 and parts[0] == "nameserver":
+                    return parts[1]
+    except OSError:
+        pass
+    return "localhost"
 
 
 def generate_launch_description():
@@ -23,9 +47,11 @@ def generate_launch_description():
         "is_vulkan",
         default_value='True')
 
+    default_host = _detect_default_host()
     host = DeclareLaunchArgument(
         "host",
-        default_value='localhost')
+        default_value=default_host,
+        description="Simulator host IP. Auto-detected on WSL2 (Windows host via /etc/resolv.conf); localhost otherwise.")
   
     cmd_vel_linear_scale = DeclareLaunchArgument(
         "cmd_vel_linear_scale",
@@ -70,6 +96,7 @@ def generate_launch_description():
     ld.add_action(cmd_vel_linear_scale)
     ld.add_action(cmd_vel_angular_scale)
 
+    ld.add_action(LogInfo(msg=f"furosim_node: using simulator host '{default_host}'"))
     ld.add_action(static_transforms)
     ld.add_action(furosim_node)
 

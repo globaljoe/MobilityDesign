@@ -34,8 +34,6 @@ ros2 launch furosim_ros_pkgs furosim_node.launch.py
 
 # 3) Keyboard teleop
 ros2 launch furosim_ros_pkgs car_teleop.launch.py
-# or, if xterm does not pop under WSL:
-./ros2/car_teleop.sh
 ```
 
 ### Key bindings (`teleop_twist_keyboard`)
