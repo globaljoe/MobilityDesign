@@ -18,15 +18,8 @@ source install/setup.bash
 
 ## Simulator Settings (`settings.json`)
 
-The simulator reads `settings.json` from `~/Documents/FURo-Sim/settings.json` on Linux, or `Documents\FURo-Sim\settings.json` on Windows. An example for car teleoperation with a front-center RGB camera is included at the repository root.
+The simulator reads `settings.json` from `Documents\FURo-Sim\settings.json` on Windows. An example for car teleoperation with a front-center RGB camera is included at the repository root.
 
-**Linux / WSL** (when the simulator is run from inside WSL):
-```bash
-mkdir -p ~/Documents/FURo-Sim
-cp settings.json ~/Documents/FURo-Sim/settings.json
-```
-
-**Windows** (when the simulator binary is run from Windows, common with WSL2):
 ```powershell
 mkdir $HOME\Documents\FURo-Sim -Force
 copy \\wsl$\Ubuntu-22.04\home\<user>\ta_tack\FURo-Sim\settings.json $HOME\Documents\FURo-Sim\settings.json
