@@ -118,6 +118,9 @@ void AirsimROSWrapper::initialize_ros()
     nh_->get_parameter_or("coordinate_system_enu", isENU_, isENU_);
     vel_cmd_duration_ = 0.05;
 
+    nh_->get_parameter_or("cmd_vel_linear_scale", cmd_vel_linear_scale_, cmd_vel_linear_scale_);
+    nh_->get_parameter_or("cmd_vel_angular_scale", cmd_vel_angular_scale_, cmd_vel_angular_scale_);
+
     nh_->declare_parameter("vehicle_name", rclcpp::ParameterValue(""));
     create_ros_pubs_from_settings_json();
     airsim_control_callback_group_ = nh_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
@@ -200,6 +203,10 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
             auto car = static_cast<CarROS*>(vehicle_ros.get());
             std::function<void(const furosim_interfaces::msg::CarControls::SharedPtr)> fcn_car_cmd_sub = std::bind(&AirsimROSWrapper::car_cmd_cb, this, _1, vehicle_ros->vehicle_name_);
             car->car_cmd_sub_ = nh_->create_subscription<furosim_interfaces::msg::CarControls>(topic_prefix + "/car_cmd", 1, fcn_car_cmd_sub);
+
+            std::function<void(const geometry_msgs::msg::Twist::SharedPtr)> fcn_cmd_vel_sub = std::bind(&AirsimROSWrapper::cmd_vel_cb, this, _1, vehicle_ros->vehicle_name_);
+            car->cmd_vel_sub_ = nh_->create_subscription<geometry_msgs::msg::Twist>(topic_prefix + "/cmd_vel", 1, fcn_cmd_vel_sub);
+
             car->car_state_pub_ = nh_->create_publisher<furosim_interfaces::msg::CarState>(topic_prefix + "/car_state", 10);
         }
 
@@ -541,6 +548,18 @@ void AirsimROSWrapper::car_cmd_cb(const furosim_interfaces::msg::CarControls::Sh
     car->car_cmd_.gear_immediate = msg->gear_immediate;
 
     car->has_car_cmd_ = true;
+    car->has_cmd_vel_ = false;
+}
+
+void AirsimROSWrapper::cmd_vel_cb(const geometry_msgs::msg::Twist::SharedPtr msg, const std::string& vehicle_name)
+{
+    std::lock_guard<std::mutex> guard(control_mutex_);
+
+    auto car = static_cast<CarROS*>(vehicle_name_ptr_map_[vehicle_name].get());
+    car->target_linear_x_ = msg->linear.x;
+    car->target_angular_z_ = msg->angular.z;
+    car->has_cmd_vel_ = true;
+    car->has_car_cmd_ = false;
 }
 
 void AirsimROSWrapper::auv_cmd_cb(const furosim_interfaces::msg::VelCmd::SharedPtr msg, const std::string& vehicle_name)
@@ -1299,8 +1318,56 @@ void AirsimROSWrapper::update_commands()
             if (car->has_car_cmd_) {
                 std::lock_guard<std::mutex> guard(control_mutex_);
                 static_cast<msr::airlib::CarRpcLibClient*>(airsim_client_.get())->setCarControls(car->car_cmd_, vehicle_ros->vehicle_name_);
+                car->has_car_cmd_ = false;
             }
-            car->has_car_cmd_ = false;
+            else if (car->has_cmd_vel_) {
+                std::lock_guard<std::mutex> guard(control_mutex_);
+
+                constexpr double kp_throttle = 2.0;   // PhysX car has sluggish throttle response; high gain keeps it near saturation while ramping up
+                constexpr double kp_brake = 0.5;
+                constexpr double speed_deadband = 0.05; // m/s
+                constexpr double steer_scale = 1.0;   // rad/s → steering input
+
+                const double target_v = car->target_linear_x_ * cmd_vel_linear_scale_;
+                // AirSim CarState.speed is already signed (Unreal GetForwardSpeed):
+                // positive when moving forward, negative when reversing.
+                const double signed_speed = car->curr_car_state_.speed;
+
+                msr::airlib::CarApiBase::CarControls ctrl;
+                ctrl.is_manual_gear = true;
+                ctrl.gear_immediate = true;
+                ctrl.handbrake = false;
+
+                if (std::abs(target_v) < speed_deadband) {
+                    // Keep the previous drive gear; switching to neutral mid-motion
+                    // can cause PhysX brake torque to apply unevenly across wheels.
+                    ctrl.manual_gear = (signed_speed >= 0) ? 1 : -1;
+                    ctrl.throttle = 0.0f;
+                    ctrl.brake = 1.0f;
+                }
+                else {
+                    ctrl.manual_gear = (target_v > 0) ? 1 : -1;
+                    const double err = target_v - signed_speed;
+                    const double drive_sign = (target_v > 0) ? 1.0 : -1.0;
+                    const double drive_err = drive_sign * err; // >0 means need more throttle
+                    if (drive_err >= 0.0) {
+                        ctrl.throttle = static_cast<float>(std::min(1.0, kp_throttle * drive_err));
+                        ctrl.brake = 0.0f;
+                    }
+                    else {
+                        ctrl.throttle = 0.0f;
+                        ctrl.brake = static_cast<float>(std::min(1.0, -kp_brake * drive_err));
+                    }
+                }
+
+                // ROS REP-103: +angular.z = CCW (left turn). AirSim CarControls.steering: +1 = right.
+                // Negate to map ROS-convention left turn to AirSim left turn.
+                double steer = -car->target_angular_z_ * cmd_vel_angular_scale_ * steer_scale;
+                steer = std::max(-1.0, std::min(1.0, steer));
+                ctrl.steering = static_cast<float>(steer);
+
+                static_cast<msr::airlib::CarRpcLibClient*>(airsim_client_.get())->setCarControls(ctrl, vehicle_ros->vehicle_name_);
+            }
         }
     }
 

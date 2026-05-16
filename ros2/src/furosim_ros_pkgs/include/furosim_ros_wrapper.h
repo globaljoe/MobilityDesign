@@ -192,11 +192,16 @@ private:
         msr::airlib::CarApiBase::CarState curr_car_state_;
 
         rclcpp::Subscription<furosim_interfaces::msg::CarControls>::SharedPtr car_cmd_sub_;
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
         rclcpp::Publisher<furosim_interfaces::msg::CarState>::SharedPtr car_state_pub_;
         furosim_interfaces::msg::CarState car_state_msg_;
 
-        bool has_car_cmd_;
+        bool has_car_cmd_ = false;
         msr::airlib::CarApiBase::CarControls car_cmd_;
+
+        bool has_cmd_vel_ = false;
+        double target_linear_x_ = 0.0;
+        double target_angular_z_ = 0.0;
     };
 
     class MultiRotorROS : public VehicleROS
@@ -249,6 +254,7 @@ private:
 
     // commands
     void car_cmd_cb(const furosim_interfaces::msg::CarControls::SharedPtr msg, const std::string& vehicle_name);
+    void cmd_vel_cb(const geometry_msgs::msg::Twist::SharedPtr msg, const std::string& vehicle_name);
     void auv_cmd_cb(const furosim_interfaces::msg::VelCmd::SharedPtr msg, const std::string& vehicle_name);
     void ocean_current_cb(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg, const std::string& vehicle_name);
     void update_commands();
@@ -386,6 +392,8 @@ private:
 
     /// ROS params
     double vel_cmd_duration_;
+    double cmd_vel_linear_scale_ = 10.0;
+    double cmd_vel_angular_scale_ = 1.0;
 
     /// ROS Timers
     rclcpp::TimerBase::SharedPtr airsim_img_response_timer_;

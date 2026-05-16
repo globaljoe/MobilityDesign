@@ -1,8 +1,4 @@
-# FURo-Sim: Field and Underwater Robotics Simulator
-
-<p align="center">
-  <img src="docs/images/FURo-Sim_Logo.png" alt="FURo-Sim Logo" width="100%"/>
-</p>
+# FURo-Sim (ROS 2 / Car teleoperation slice)
 
 <p align="center">
   <a href="https://youtu.be/cEMKJDBZpxY">
@@ -12,39 +8,28 @@
   <em>▶ Demo Video (click to watch on YouTube)</em>
 </p>
 
-> **Notice:** This is a **partial release** of FURo-Sim made available to support an in-progress paper review. Some components — see the [TODO](#todo) section — will be released after the review is complete.
+> **Notice:** This repository is a slimmed-down distribution of FURo-Sim focused on the **ROS 2 car teleoperation pipeline**. The Python client, ROS 1 wrapper, AUV examples, and Unreal Engine project sources are not included here.
 
-FURo-Sim is an open-source, GPU-accelerated, physics-based sonar simulation framework built on [Unreal Engine 5.4](https://www.unrealengine.com/) for underwater robotic perception research. Originally developed upon the [AirSim](https://github.com/microsoft/AirSim) (Microsoft) and [Colosseum](https://github.com/CodexLabsLLC/Colosseum) (Codex Laboratories) frameworks, FURo-Sim extends their capabilities with support for autonomous underwater vehicles (AUVs), autonomous surface vehicles (ASVs), and physically realistic underwater acoustic sensing. It generates physically realistic synthetic sonar imagery together with pixel-accurate ground-truth annotations at negligible marginal cost, addressing the scarcity and high acquisition cost of real underwater sonar datasets.
-
-
-
+FURo-Sim is a GPU-accelerated, physics-based simulation framework built on [Unreal Engine 5.4](https://www.unrealengine.com/), originally derived from [AirSim](https://github.com/microsoft/AirSim) and [Colosseum](https://github.com/CodexLabsLLC/Colosseum). This distribution provides the ROS 2 (Humble) integration for driving the simulated `PhysXCar` via `cmd_vel`.
 
 ---
 
 ## Key Features
-- Acoustic ray tracing GPU-accelerated sonar simulation (FLS, SSS)
-- Full dynamics-based AUV & ASV simulation
-- Multi-agent support
-- Real-time realistic simulation powered by Unreal Engine 5.4
-- Windows / Linux support
-- Python client API (`PythonClient/auv/`, `PythonClient/fls/`, `PythonClient/sss/`)
-- C++ client API (`HelloAuv/`)
-- ROS (Noetic) / ROS2 (Humble) integration with AUV, FLS, SSS, DVL, Pressure support
+
+- ROS 2 (Humble) integration with the simulator
+- `cmd_vel` (`geometry_msgs/Twist`) → `CarControls` translation with a P-controller for closed-loop velocity tracking
+- Map-scale-aware velocity scaling (`cmd_vel_linear_scale` parameter)
+- Keyboard teleoperation via `teleop_twist_keyboard`
 
 ---
 
-## Unreal Engine Version
+## Supported Environment
 
-This project is built on **Unreal Engine 5.4**.
-
----
-
-## Supported Operating Systems
-
-| OS | Version |
-|----|---------|
-| Windows | Windows 10 / 11 |
-| Linux | Ubuntu 20.04 / 22.04 |
+| Component | Version |
+|---|---|
+| OS | Ubuntu 22.04 (native or WSL2) |
+| ROS 2 | Humble |
+| Simulator | Pre-built FURo-Sim binary (Unreal Engine 5.4) |
 
 ---
 
@@ -52,73 +37,136 @@ This project is built on **Unreal Engine 5.4**.
 
 ```
 FURo-Sim/
-├── AirLib/                  # Core simulation library
-├── HelloAuv/                # AUV C++ client example
-├── PythonClient/
-│   ├── furosim/             # Python client package
-│   ├── auv/                 # AUV examples
-│   ├── fls/                 # Forward-Looking Sonar (FLS) examples
-│   └── sss/                 # Side-Scan Sonar (SSS) examples
-├── ros/                     # ROS (Noetic) integration
-├── ros2/                    # ROS2 (Humble) integration
-├── settings_examples/       # Example settings.json files
+├── AirLib/                 # AirSim core simulation library (build dependency)
+├── MavLinkCom/             # MavLink communication library (build dependency)
+├── cmake/                  # CMake glue for AirLib / MavLinkCom / rpclib
+├── external/               # rpclib (RPC) source
+├── ros2/                   # ROS 2 (Humble) workspace
+│   ├── src/
+│   │   ├── furosim_interfaces/    # Custom message/service definitions
+│   │   └── furosim_ros_pkgs/      # Wrapper node, launch files
+│   └── car_teleop.sh              # Keyboard teleop helper script
+├── settings.json           # Example AirSim settings (Car + camera)
+├── setup.sh                # Install build prerequisites
+├── build.sh                # Build AirLib / MavLinkCom / rpclib
+├── clean.sh                # Clean build artifacts
 └── LICENSE
 ```
 
 ---
 
-## Download (Pre-built Binary)
+## Build from Source (WSL2 / Ubuntu 22.04)
 
-Download the latest release from [GitHub Releases](https://github.com/heekyu-kweon/FURo-Sim/releases).
+The simulator binary runs on the Windows host; ROS 2 development happens inside WSL2.
 
-### Windows
+### 1. Install dependencies and build AirLib
 
-1. Download and extract `FURoSimDemo_v0.1.1_Windows.zip`
-2. Copy a settings file to `Documents\FURo-Sim\settings.json` (see [`settings_examples/`](settings_examples/) for reference)
-3. Run `FURoSimDemo.exe`
+From the repository root:
 
-### Linux (Ubuntu 20.04 / 22.04)
-
-1. Download and extract `FURoSimDemo_v0.1.1_Linux.tar.xz`
 ```bash
-tar -xf FURoSimDemo_v0.1.1_Linux.tar.xz
-```
-2. Copy a settings file to `~/Documents/FURo-Sim/settings.json` (see [`settings_examples/`](settings_examples/) for reference)
-3. Run the simulator
-```bash
-./FURoSimDemo.sh
+# One-time: install system packages (clang, cmake, etc.)
+./setup.sh
+
+# Build AirLib, MavLinkCom, rpclib
+./build.sh
 ```
 
----
+### 2. Build the ROS 2 workspace
 
-## Recommended Development Environment
+```bash
+cd ros2
+source /opt/ros/humble/setup.bash
+colcon build --packages-select furosim_interfaces furosim_ros_pkgs
+source install/setup.bash
+```
 
-We recommend using **Windows + WSL (Windows Subsystem for Linux)** as the development environment:
-
-- **Windows**: Run the Unreal Engine 5.4 simulator binary (FURoSimDemo.exe)
-- **WSL (Ubuntu 20.04 / 22.04)**: Use the Python client, ROS/ROS2 packages, and build AirLib from source
-
-This combination allows you to run the simulator on Windows while leveraging Linux tooling for development and ROS integration.
-
----
-
-## Documentation
-
-> Documentation is currently under preparation and will be available in a future release.
+After this, the launch files under `furosim_ros_pkgs` are available.
 
 ---
 
-## TODO
+## Simulator Settings (`settings.json`)
 
-- [ ] Release Unreal Project source code
-- [ ] Release ASV (Autonomous Surface Vehicle) support
-- [ ] Release documentation
+The simulator reads `settings.json` from `~/Documents/FURo-Sim/settings.json` on Linux, or `Documents\FURo-Sim\settings.json` on Windows. An example tailored for car teleoperation with a front-center RGB camera is provided at the repository root.
+
+### Install the example
+
+**Linux / WSL** (when the simulator is run from inside WSL):
+```bash
+mkdir -p ~/Documents/FURo-Sim
+cp settings.json ~/Documents/FURo-Sim/settings.json
+```
+
+**Windows** (when the simulator binary is run from Windows, which is the common case with WSL2):
+```powershell
+# In PowerShell, replace <user> with your Windows username
+mkdir $HOME\Documents\FURo-Sim -Force
+copy \\wsl$\Ubuntu-22.04\home\<user>\ta_tack\FURo-Sim\settings.json $HOME\Documents\FURo-Sim\settings.json
+```
+
+### What it configures
+
+- `SimMode: Car` — boot the simulator in car mode
+- One vehicle named `PhysXCar` using AirSim's built-in PhysX-based car
+- One front-center RGB camera (640×480, 64.4° FOV, pitched 15° down)
+
+Restart the simulator after changing this file.
+
+---
+
+## Run
+
+In three separate terminals (all sourced with `install/setup.bash`):
+
+**1. Start the simulator binary** (on the Windows host)
+
+**2. Start the ROS 2 wrapper node**
+```bash
+ros2 launch furosim_ros_pkgs furosim_node.launch.py
+```
+
+Useful parameters (override on the command line, e.g. `cmd_vel_linear_scale:=1.0`):
+- `cmd_vel_linear_scale` — multiplier applied to `cmd_vel.linear.x` (default `10.0` for the current 10× scaled map)
+- `cmd_vel_angular_scale` — multiplier for `cmd_vel.angular.z` (default `1.0`; angular maps to wheel steering angle which is map-scale independent)
+- `host` — IP of the simulator host (default `localhost`)
+
+**3. Start the keyboard teleop**
+```bash
+ros2 launch furosim_ros_pkgs car_teleop.launch.py
+```
+This opens an `xterm` window. If `xterm` does not appear under WSL, use the fallback helper script instead:
+```bash
+./car_teleop.sh                       # PhysXCar, speed=0.3, turn=1.0
+./car_teleop.sh PhysXCar 0.5 0.8      # custom vehicle / speed / turn
+```
+
+### Key bindings (`teleop_twist_keyboard`)
+
+```
+   u    i    o
+   j    k    l
+   m    ,    .
+```
+
+- `i` / `,` — forward / reverse
+- `u` / `o` — forward + left / right
+- `m` / `.` — reverse + left / right
+- `j` / `l` — turn left / right in place
+- `k` — stop
+- `q` / `z` — increase / decrease both linear and angular by 10%
+- `w` / `x` — linear only
+- `e` / `c` — angular only
+
+### Verify topics
+
+```bash
+ros2 topic list
+ros2 topic echo /furosim_node/PhysXCar/cmd_vel
+ros2 topic echo /furosim_node/PhysXCar/car_state    # speed, gear, rpm
+```
 
 ---
 
 ## Citation
-
-If you use FURo-Sim in your research, please cite:
 
 ```bibtex
 @inproceedings{kweon2025furosim,
@@ -134,10 +182,9 @@ If you use FURo-Sim in your research, please cite:
 
 ## License
 
-This project is released under the MIT License.
-FURo-Sim modifications: Copyright (c) FURo Lab. 2026
+This project is released under the MIT License. FURo-Sim modifications: Copyright (c) FURo Lab.
 
-Please review the [LICENSE](LICENSE) file for full details, including the original AirSim (Microsoft) and Colosseum (Codex Laboratories LLC) licenses.
+See [LICENSE](LICENSE) for full details, including the original AirSim (Microsoft) and Colosseum (Codex Laboratories LLC) licenses.
 
 ---
 

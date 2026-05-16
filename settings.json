@@ -1,0 +1,23 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Car",
+  "Vehicles": {
+    "PhysXCar": {
+      "VehicleType": "PhysXCar",
+      "Cameras": {
+        "front_center": {
+          "X": 2.0, "Y": 0.0, "Z": -1.5,
+          "Pitch": -15.0, "Roll": 0.0, "Yaw": 0.0,
+          "CaptureSettings": [
+            {
+              "ImageType": 0,
+              "Width": 640,
+              "Height": 480,
+              "FOV_Degrees": 64.4
+            }
+          ]
+        }
+      }
+    }
+  }
+}
