@@ -5,13 +5,9 @@
 From the repository root:
 
 ```bash
-# One-time: install system packages (clang, cmake, etc.)
 ./setup.sh
-
-# Build AirLib, MavLinkCom, rpclib
 ./build.sh
 
-# Build the ROS 2 workspace
 cd ros2
 source /opt/ros/humble/setup.bash
 colcon build --packages-select furosim_interfaces furosim_ros_pkgs
