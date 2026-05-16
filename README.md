@@ -18,19 +18,7 @@ source install/setup.bash
 
 ## Simulator Settings (`settings.json`)
 
-The simulator reads `settings.json` from `Documents\FURo-Sim\settings.json` on Windows. An example for car teleoperation with a front-center RGB camera is included at the repository root.
-
-```powershell
-mkdir $HOME\Documents\FURo-Sim -Force
-copy \\wsl$\Ubuntu-22.04\home\<user>\ta_tack\FURo-Sim\settings.json $HOME\Documents\FURo-Sim\settings.json
-```
-
-The example configures:
-- `SimMode: Car`
-- One `PhysXCar` vehicle
-- A front-center RGB camera (640×480, 64.4° FOV, pitched 15° down)
-
-Restart the simulator after changing this file.
+The simulator reads `settings.json` from `Documents\FURo-Sim\settings.json` on Windows.
 
 ---
 
