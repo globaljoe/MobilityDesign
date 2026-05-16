@@ -49,9 +49,9 @@ ros2 launch furosim_ros_pkgs car_teleop.launch.py
 - `m` / `.` — reverse + left / right
 - `j` / `l` — turn in place
 - `k` — stop
-- `q` / `z` — scale both linear and angular by ±10%
-- `w` / `x` — linear only
-- `e` / `c` — angular only
+- `q` / `z` — increase / decrease both linear and angular speed by 10%
+- `w` / `x` — increase / decrease linear speed only by 10%
+- `e` / `c` — increase / decrease angular speed only by 10%
 
 ---
 
