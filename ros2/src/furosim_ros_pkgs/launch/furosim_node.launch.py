@@ -13,8 +13,10 @@ def _detect_default_host():
     """Return the simulator host IP.
 
     Under WSL2 the Unreal simulator runs on the Windows host, which is reachable
-    from the WSL2 guest at the DNS nameserver address recorded in /etc/resolv.conf
-    (the WSL2 NAT gateway). Outside WSL we fall back to localhost.
+    from the WSL2 guest at the default route gateway (the vEthernet adapter IP
+    on the Windows side). /etc/resolv.conf's nameserver may point to WSL2's
+    internal DNS resolver (10.255.255.254) instead, so we use /proc/net/route.
+    Outside WSL we fall back to localhost.
     """
     try:
         with open("/proc/version", "r") as f:
@@ -23,12 +25,16 @@ def _detect_default_host():
     except OSError:
         return "localhost"
     try:
-        with open("/etc/resolv.conf", "r") as f:
+        with open("/proc/net/route", "r") as f:
+            next(f)  # header
             for line in f:
-                parts = line.strip().split()
-                if len(parts) >= 2 and parts[0] == "nameserver":
-                    return parts[1]
-    except OSError:
+                fields = line.strip().split()
+                if len(fields) >= 3 and fields[1] == "00000000":
+                    gw_hex = fields[2]
+                    return ".".join(
+                        str(int(gw_hex[i:i + 2], 16)) for i in (6, 4, 2, 0)
+                    )
+    except (OSError, StopIteration, ValueError):
         pass
     return "localhost"
 

@@ -1,6 +1,8 @@
 {
   "SettingsVersion": 1.2,
   "SimMode": "Car",
+  "LocalHostIp": "0.0.0.0",
+  "ApiServerPort": 41451,
   "Vehicles": {
     "PhysXCar": {
       "VehicleType": "PhysXCar",
